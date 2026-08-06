@@ -263,9 +263,14 @@ function idbGet(store,key){ return new Promise((res,rej)=>{ const r=tx(store).ge
 function idbAll(store){ return new Promise((res,rej)=>{ const r=tx(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
 function idbPut(store,val){ return new Promise((res,rej)=>{ const r=tx(store,"readwrite").put(val); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
 
+/* Invoices already issued before the app existed. Verified 2026-08-06 against
+   both the invoices/ folder and the Jobs sheet — highest was J0035, 35 jobs total.
+   New jobs continue from J0036. Bump this only if pre-app invoices are added later. */
+const START_JOB_NO = 35;
 async function nextJobId(){
   const m = await idbGet("meta","jobseq");
-  const n = (m?.v || 0) + 1;
+  const base = Math.max(m?.v || 0, START_JOB_NO);
+  const n = base + 1;
   await idbPut("meta",{k:"jobseq",v:n});
   return "J" + String(n).padStart(4,"0");
 }

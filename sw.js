@@ -1,5 +1,5 @@
 /* Figueroa's Estimate·Job·Invoice — offline service worker */
-const CACHE = "figueroas-v2";
+const CACHE = "figueroas-v3";
 const ASSETS = [
   "./",
   "./index.html",
