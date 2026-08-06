@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Figueroa's">
+<meta name="theme-color" content="#CC2020">
+<title>Figueroa's — Estimate · Job · Invoice</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23CC2020'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Georgia,serif'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header><div class="wrap">
+  <h1>Figueroa's Carpet Cleaning</h1>
+  <p id="hdrsub">Estimate · Job · Invoice</p>
+</div></header>
+
+<div class="tabbar"><div class="tabs">
+  <button id="tab-estimate" class="on" data-s="estimate">1 · Estimate</button>
+  <button id="tab-job" data-s="job">2 · Job</button>
+  <button id="tab-invoice" data-s="invoice">3 · Invoice</button>
+  <button id="tab-jobs" data-s="jobs">Saved</button>
+</div></div>
+
+<!-- ───────────── SCREEN 1: ESTIMATE ───────────── -->
+<div class="screen on" id="screen-estimate"><div class="wrap">
+
+  <section>
+    <h2>Job type</h2>
+    <div class="seg" id="jobtype">
+      <button class="on" data-t="res">Residential</button>
+      <button data-t="com">Commercial</button>
+    </div>
+    <div class="commercial" id="comBox">
+      <strong>Don't auto-quote commercial.</strong> Walk the space, count rooms at the $100 base,
+      adjust for scale, then give one number by phone.<br><br>
+      The Presbyterian job came to <strong>$1,200</strong>. That's the anchor. This market pays —
+      the mistake here is underquoting.
+    </div>
+  </section>
+
+  <div id="resForm">
+    <section>
+      <h2><span>Carpet</span></h2>
+      <div class="seg teal" id="carpetMode">
+        <button class="on" data-m="rooms">By room</button>
+        <button data-m="sqft">By square foot</button>
+      </div>
+
+      <div class="mode-body show" id="mode-rooms">
+        <div class="rows" id="carpet"></div>
+      </div>
+
+      <div class="mode-body" id="mode-sqft">
+        <div class="rows">
+          <div class="field">
+            <label for="sqft">Square footage of carpet</label>
+            <input type="number" id="sqft" min="0" step="10" inputmode="numeric" placeholder="e.g. 850">
+          </div>
+          <div class="field">
+            <label for="sqrate">Rate ($/sq ft)</label>
+            <input type="number" id="sqrate" value="0.35" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="row">
+            <div class="lbl"><b>Add-ons still apply</b><span>Stairs, hallways, pet areas — add them below</span></div>
+          </div>
+          <div id="carpet-sqft-addons"></div>
+        </div>
+        <p class="hint">Starting rate $0.35/sq ft (≈ our $100 room). Confirm with Dad — edit any time. $120 minimum still applies.</p>
+      </div>
+    </section>
+
+    <section><h2><span>Upholstery</span></h2><div class="rows" id="uph"></div></section>
+    <section>
+      <h2><span>Rugs</span></h2><div class="rows" id="rugs"></div>
+      <p class="hint">Area rugs price <b>each</b>, by size and material.</p>
+    </section>
+
+    <div class="note" id="lowNote">Heads up — this is under our $100/room standard. Don't leave money on the table.</div>
+  </div>
+
+  <div class="commercial-guidance"></div>
+</div></div>
+
+<!-- ───────────── SCREEN 2: JOB ───────────── -->
+<div class="screen" id="screen-job"><div class="wrap">
+  <section>
+    <h2>Customer</h2>
+    <div class="rows">
+      <div class="field stack">
+        <label for="custPick">Existing customer</label>
+        <select id="custPick"><option value="">— New customer —</option></select>
+      </div>
+    </div>
+    <div class="rows" id="newCustFields">
+      <div class="field"><label for="c_first">First name</label><input id="c_first" autocomplete="off"></div>
+      <div class="field"><label for="c_last">Last name</label><input id="c_last" autocomplete="off"></div>
+      <div class="field"><label for="c_phone">Phone</label><input id="c_phone" inputmode="tel" autocomplete="off"></div>
+      <div class="field"><label for="c_email">Email</label><input id="c_email" inputmode="email" autocomplete="off"></div>
+      <div class="field"><label for="c_street">Street</label><input id="c_street" autocomplete="off"></div>
+      <div class="field"><label for="c_city">City</label><input id="c_city" autocomplete="off"></div>
+      <div class="field"><label for="c_zip">ZIP</label><input id="c_zip" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="c_type">Type</label>
+        <select id="c_type"><option>Residential</option><option>Commercial</option></select></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Job details</h2>
+    <div class="rows">
+      <div class="field"><label for="j_date">Date</label><input type="date" id="j_date"></div>
+      <div class="field"><label for="j_hours">Hours on site</label>
+        <input type="number" id="j_hours" min="0" step="0.25" inputmode="decimal" placeholder="e.g. 2"></div>
+      <div class="field"><label for="j_tech">Technician(s)</label><input id="j_tech" placeholder="Jose Figueroa"></div>
+      <div class="field"><label for="j_pay">Payment method</label>
+        <select id="j_pay"><option value="">—</option><option>Cash</option><option>Venmo</option><option>Check</option><option>Card</option></select></div>
+      <div class="field"><label for="j_paid">Paid?</label>
+        <select id="j_paid"><option>No</option><option>Yes</option><option>Partial</option></select></div>
+      <div class="field"><label for="j_disc">Discount ($)</label>
+        <input type="number" id="j_disc" min="0" step="1" inputmode="numeric" placeholder="0"></div>
+      <div class="field stack"><label for="j_stain">Stain notes</label><textarea id="j_stain"></textarea></div>
+      <div class="field stack"><label for="j_notes">Notes</label><textarea id="j_notes"></textarea></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>This job</h2>
+    <div class="rows" id="jobSummary"></div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="saveJob">Save job</button>
+  </div>
+  <p class="hint" id="jobMsg"></p>
+</div></div>
+
+<!-- ───────────── SCREEN 3: INVOICE ───────────── -->
+<div class="screen" id="screen-invoice"><div class="wrap">
+  <section>
+    <h2>Invoice</h2>
+    <div class="rows" id="invPreview">
+      <p class="hint">Save a job first, then generate its invoice here.</p>
+    </div>
+  </section>
+  <div class="actions">
+    <button class="red" id="genPdf" disabled>Generate PDF invoice</button>
+  </div>
+  <div class="actions">
+    <button id="sharePdf" disabled>Share / Save</button>
+    <button id="printPdf" disabled>Open PDF</button>
+  </div>
+  <p class="hint" id="invMsg"></p>
+</div></div>
+
+<!-- ───────────── SCREEN: SAVED JOBS ───────────── -->
+<div class="screen" id="screen-jobs"><div class="wrap">
+  <section>
+    <h2><span>Saved jobs</span><span id="jobCount" class="linkbtn" style="cursor:default"></span></h2>
+    <div class="rows" id="jobsList"><p class="hint">No saved jobs yet.</p></div>
+  </section>
+  <div class="actions">
+    <button class="primary" id="newJob">+ New job</button>
+    <button id="importCust">Import customers</button>
+  </div>
+  <input type="file" id="custFile" accept="application/json,.json" style="display:none">
+  <div class="actions">
+    <button id="exportJobs">Export jobs (CSV)</button>
+    <button id="exportJson">Export (JSON)</button>
+  </div>
+  <p class="hint">Export feeds <b>client-database.xlsx</b> and the Customer &amp; Pricing Analytics case study — run <code>scripts/import_jobs.py</code> on your Mac. <b>Import customers</b> loads a private customers.json for repeat-customer autofill (see README).</p>
+  <footer>
+    Figueroa's Carpet Cleaning · 41 Victory Dr, Buellton, CA 93427<br>
+    Works offline · your data stays on this phone
+  </footer>
+</div></div>
+
+<!-- Fixed quote bar (Estimate screen only) -->
+<div id="out"><div class="wrap">
+  <div class="quote">
+    <div><div class="big" id="total">$0</div><div class="sub" id="perhr"></div></div>
+    <div class="sub" id="breakdown">Nothing added yet</div>
+  </div>
+  <button class="qbtn" id="toJob" disabled>Continue to job →</button>
+</div></div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
