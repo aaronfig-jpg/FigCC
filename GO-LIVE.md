@@ -93,13 +93,32 @@ The app is the front line; your `client-database.xlsx` and the Carpet King case 
 
 That's also what feeds the case study — every synced job carries the square footage, hours, and ZIP the analysis needs.
 
-### Giving Dad the repeat-customer list (optional, one time)
+### Giving Dad the repeat-customer list (one time)
 
-So Dad doesn't retype regulars:
+So Dad doesn't retype regulars. A ready-made file with your current 38 customers is already generated at:
 
-1. On your Mac: `python3 scripts/export_customers.py` → creates `customers.json`.
-2. AirDrop `customers.json` to the phone.
-3. In the app: **Saved → Import customers**, pick the file. Now regulars show up in the customer dropdown.
+```
+03 Projects/Figueroa's Carpet Cleaning/customers-PRIVATE-do-not-upload.json
+```
+
+(It lives outside the app folder on purpose — it holds real customer data and must never go in the GitHub repo.)
+
+1. AirDrop that file to the phone (Files app).
+2. In the app: **Clients tab → Import customers**, pick the file. The 38 customers appear on the **Clients** tab and in the customer dropdown on the Job screen.
+3. To regenerate it later after the list grows: `python3 scripts/export_customers.py --out "../customers-PRIVATE-do-not-upload.json"`.
+
+The **Clients** tab is also a full editor — add, edit, or delete customers right on the phone.
+
+---
+
+## Updating the app after I change it
+
+When the app files change, two things have to happen:
+
+1. **Re-upload the changed files to the repo** (drag the new `index.html`, `app.js`, `styles.css`, `sw.js`, etc. into the repo's root, Commit).
+2. **The phone has to refresh its cached copy.** The app caches itself to work offline, so it won't show changes instantly. To force it: close the app fully (swipe it away in the app switcher) and reopen it **with internet** once or twice. I bump an internal version number on each change, which tells the phone to pull the new files on the next online open.
+
+If the phone still looks old after that, remove the icon and re-add it from Safari (Share → Add to Home Screen).
 
 ---
 

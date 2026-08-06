@@ -22,10 +22,11 @@
 </div></header>
 
 <div class="tabbar"><div class="tabs">
-  <button id="tab-estimate" class="on" data-s="estimate">1 · Estimate</button>
-  <button id="tab-job" data-s="job">2 · Job</button>
-  <button id="tab-invoice" data-s="invoice">3 · Invoice</button>
-  <button id="tab-jobs" data-s="jobs">Saved</button>
+  <button id="tab-estimate" class="on" data-s="estimate">Estimate</button>
+  <button id="tab-job" data-s="job">Job</button>
+  <button id="tab-invoice" data-s="invoice">Invoice</button>
+  <button id="tab-jobs" data-s="jobs">Jobs</button>
+  <button id="tab-clients" data-s="clients">Clients</button>
 </div></div>
 
 <!-- ───────────── SCREEN 1: ESTIMATE ───────────── -->
@@ -178,6 +179,39 @@
     Figueroa's Carpet Cleaning · 41 Victory Dr, Buellton, CA 93427<br>
     Works offline · your data stays on this phone
   </footer>
+</div></div>
+
+<!-- ───────────── SCREEN: CLIENTS ───────────── -->
+<div class="screen" id="screen-clients"><div class="wrap">
+  <section>
+    <h2><span>Clients</span><span id="clientCount" class="linkbtn" style="cursor:default"></span></h2>
+    <div class="rows" id="clientsList"><p class="hint">No customers yet.</p></div>
+  </section>
+  <div class="actions">
+    <button class="primary" id="addClient">+ Add customer</button>
+    <button id="importCust2">Import customers</button>
+  </div>
+
+  <section id="clientForm" style="display:none">
+    <h2 id="clientFormTitle">New customer</h2>
+    <div class="rows">
+      <div class="field"><label for="cf_first">First name</label><input id="cf_first" autocomplete="off"></div>
+      <div class="field"><label for="cf_last">Last name</label><input id="cf_last" autocomplete="off"></div>
+      <div class="field"><label for="cf_phone">Phone</label><input id="cf_phone" inputmode="tel" autocomplete="off"></div>
+      <div class="field"><label for="cf_email">Email</label><input id="cf_email" inputmode="email" autocomplete="off"></div>
+      <div class="field"><label for="cf_street">Street</label><input id="cf_street" autocomplete="off"></div>
+      <div class="field"><label for="cf_city">City</label><input id="cf_city" autocomplete="off"></div>
+      <div class="field"><label for="cf_zip">ZIP</label><input id="cf_zip" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="cf_type">Type</label>
+        <select id="cf_type"><option>Residential</option><option>Commercial</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="saveClient">Save customer</button>
+      <button id="cancelClient">Cancel</button>
+    </div>
+    <p class="hint" id="clientMsg"></p>
+  </section>
+  <p class="hint">Customers are stored on this phone. <b>Import customers</b> loads a private customers.json (see README). Nothing here is on the public web.</p>
 </div></div>
 
 <!-- Fixed quote bar (Estimate screen only) -->

@@ -241,7 +241,9 @@ function renderJobSummary(){
 let db;
 function openDB(){
   return new Promise((res,rej)=>{
-    const rq = indexedDB.open("figueroas", 1);
+    let rq;
+    try{ rq = indexedDB.open("figueroas", 1); }
+    catch(e){ return rej(e); }
     rq.onupgradeneeded = ()=>{ const d=rq.result;
       if(!d.objectStoreNames.contains("jobs")) d.createObjectStore("jobs",{keyPath:"job_id"});
       if(!d.objectStoreNames.contains("clients")) d.createObjectStore("clients",{keyPath:"client_id"});
@@ -249,7 +251,12 @@ function openDB(){
     };
     rq.onsuccess=()=>{ db=rq.result; res(db); };
     rq.onerror=()=>rej(rq.error);
+    rq.onblocked=()=>rej(new Error("storage blocked"));
   });
+}
+async function ensureDB(){
+  if(db) return true;
+  try{ await openDB(); return !!db; }catch(e){ return false; }
 }
 function tx(store,mode="readonly"){ return db.transaction(store,mode).objectStore(store); }
 function idbGet(store,key){ return new Promise((res,rej)=>{ const r=tx(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
@@ -263,24 +270,40 @@ async function nextJobId(){
   return "J" + String(n).padStart(4,"0");
 }
 
+function clientRecord(c){
+  return { client_id:c.client_id, first:c.first||"", last:c.last||"", phone:c.phone||"",
+    email:c.email||"", street:c.street||"", city:c.city||"", zip:c.zip||"", type:c.type||"Residential" };
+}
 async function saveJob(){
-  if(!currentJob){ prepJob(); }
-  if(!currentJob || currentJob.line_items.length===0){ $("jobMsg").textContent="Add at least one line on the Estimate screen first."; return; }
-  const c = currentJob.client;
-  if(!c.client_id && !(c.first||c.last)){ $("jobMsg").textContent="Enter a customer name (or pick an existing customer)."; return; }
-  // save/lookup client
-  if(!c.client_id){
-    const cid = "APP-" + Date.now().toString(36);
-    c.client_id = cid;
-    await idbPut("clients",{client_id:cid, ...c});
-    await refreshClientPicker(cid);
+  try{
+    if(!(await ensureDB())){
+      window.alert("This phone is blocking storage, so jobs can't be saved.\n\nIf you opened the app in Private Browsing, open it normally instead. Otherwise check Settings → Safari and make sure website data isn't blocked.");
+      return;
+    }
+    if(!currentJob){ prepJob(); }
+    if(!currentJob || currentJob.line_items.length===0){
+      window.alert("Add at least one item on the Estimate screen first."); showScreen("estimate"); return;
+    }
+    const c = currentJob.client;
+    if(!c.client_id && !(c.first||c.last)){
+      window.alert("Add a customer name first, or pick an existing customer."); $("c_first").focus(); return;
+    }
+    // save the customer (new, or keep an existing one in sync with edits)
+    if(!c.client_id) c.client_id = "APP-" + Date.now().toString(36);
+    await idbPut("clients", clientRecord(c));
+    await refreshClientPicker(c.client_id);
+    if(typeof refreshClients==="function") await refreshClients();
+    // save the job
+    currentJob.job_id = currentJob.job_id || await nextJobId();
+    await idbPut("jobs", currentJob);
+    $("jobMsg").textContent = `Saved ${currentJob.job_id}.`;
+    loadInvoicePreview(currentJob);
+    $("tab-invoice").disabled = false;
+    await refreshJobsList();
+    showScreen("invoice");   // clear signal it worked + sets up the PDF
+  }catch(e){
+    window.alert("Couldn't save the job:\n" + (e && e.message ? e.message : e) + "\n\nTell Aaron exactly what this says.");
   }
-  currentJob.job_id = currentJob.job_id || await nextJobId();
-  await idbPut("jobs", currentJob);
-  $("jobMsg").textContent = `Saved ${currentJob.job_id} for ${c.first||""} ${c.last||""}`.trim() + ".";
-  loadInvoicePreview(currentJob);
-  $("tab-invoice").disabled=false;
-  await refreshJobsList();
 }
 
 /* ───────────── Edit / delete / new ───────────── */
@@ -352,7 +375,8 @@ async function importCustomers(file){
       n++;
     }
     await refreshClientPicker();
-    window.alert(`Imported ${n} customers. They'll show up when you pick a customer on the Job screen.`);
+    if(typeof refreshClients==="function") await refreshClients();
+    window.alert(`Imported ${n} customers. Find them on the Clients tab and when you pick a customer on the Job screen.`);
   }catch(e){ window.alert("Couldn't read that file. Make sure it's the customers.json from export_customers.py."); }
 }
 
@@ -587,6 +611,61 @@ function bindCustomerPicker(){
   });
 }
 
+/* ───────────── Clients page (view / add / edit / delete) ───────────── */
+let editingClientId = null;
+const CF = ["first","last","phone","email","street","city","zip","type"];
+async function refreshClients(){
+  if(!(await ensureDB())){ $("clientsList").innerHTML='<p class="hint">Storage is unavailable on this phone.</p>'; return; }
+  const clients=(await idbAll("clients")).sort((a,b)=>((a.last||a.first||"")+"").localeCompare((b.last||b.first||"")+""));
+  $("clientCount").textContent = clients.length ? `${clients.length}` : "";
+  const host=$("clientsList");
+  if(!clients.length){ host.innerHTML='<p class="hint">No customers yet. Add one, or Import customers.</p>'; return; }
+  host.innerHTML="";
+  clients.forEach(c=>{
+    const nm=`${c.first||""} ${c.last||""}`.trim()||"—";
+    const meta=[c.phone,c.city].filter(Boolean).join(" · ")||"—";
+    const d=document.createElement("div"); d.className="jobrow";
+    d.innerHTML=`<div><div class="who">${nm}</div><div class="meta">${meta}</div></div>
+      <div style="display:flex;gap:2px;flex-shrink:0">
+        <button class="linkbtn" data-cedit="${c.client_id}">Edit</button>
+        <button class="linkbtn" data-cdel="${c.client_id}" style="color:var(--red)">Delete</button>
+      </div>`;
+    host.appendChild(d);
+  });
+  host.querySelectorAll("[data-cedit]").forEach(b=>b.addEventListener("click", ()=>editClient(b.dataset.cedit)));
+  host.querySelectorAll("[data-cdel]").forEach(b=>b.addEventListener("click", ()=>deleteClient(b.dataset.cdel)));
+}
+function showClientForm(show){ $("clientForm").style.display = show?"":"none"; }
+function addClient(){
+  editingClientId=null; $("clientFormTitle").textContent="New customer";
+  CF.forEach(k=>{ const el=$("cf_"+k); if(el) el.value = k==="type"?"Residential":""; });
+  $("clientMsg").textContent=""; showClientForm(true);
+  if($("clientForm").scrollIntoView) $("clientForm").scrollIntoView({behavior:"smooth"});
+}
+async function editClient(id){
+  const c=await idbGet("clients",id); if(!c) return;
+  editingClientId=id; $("clientFormTitle").textContent="Edit customer";
+  CF.forEach(k=>{ const el=$("cf_"+k); if(el) el.value=c[k]||(k==="type"?"Residential":""); });
+  $("clientMsg").textContent=""; showClientForm(true);
+  if($("clientForm").scrollIntoView) $("clientForm").scrollIntoView({behavior:"smooth"});
+}
+async function saveClient(){
+  try{
+    if(!(await ensureDB())){ window.alert("Storage is unavailable on this phone."); return; }
+    const c={}; CF.forEach(k=>c[k]=($("cf_"+k).value||"").trim());
+    if(!c.first && !c.last){ $("clientMsg").textContent="Add at least a first or last name."; return; }
+    c.client_id = editingClientId || ("APP-"+Date.now().toString(36));
+    await idbPut("clients", clientRecord(c));
+    editingClientId=null; showClientForm(false);
+    await refreshClients(); await refreshClientPicker();
+  }catch(e){ window.alert("Couldn't save customer: "+(e&&e.message?e.message:e)); }
+}
+async function deleteClient(id){
+  if(!window.confirm("Delete this customer? Their saved jobs stay, but the customer entry is removed.")) return;
+  await new Promise((res,rej)=>{ const r=tx("clients","readwrite").delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+  await refreshClients(); await refreshClientPicker();
+}
+
 /* ───────────── Screen routing ───────────── */
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id==="screen-"+name));
@@ -594,6 +673,7 @@ function showScreen(name){
   $("out").style.display = name==="estimate" ? "" : "none";
   if(name==="job"){ if(!$("j_date").value) $("j_date").value=new Date().toISOString().slice(0,10); prepJob(); refreshClientPicker(); }
   if(name==="jobs") refreshJobsList();
+  if(name==="clients"){ showClientForm(false); refreshClients(); }
   window.scrollTo(0,0);
 }
 function bindTabs(){
@@ -613,8 +693,14 @@ function bindTabs(){
   $("exportJson").addEventListener("click", exportJson);
   $("newJob").addEventListener("click", newJob);
   $("importCust").addEventListener("click", ()=>$("custFile").click());
+  $("importCust2").addEventListener("click", ()=>$("custFile").click());
   $("custFile").addEventListener("change", e=>{ if(e.target.files[0]){ importCustomers(e.target.files[0]); e.target.value=""; } });
-  try{ await openDB(); await refreshJobsList(); await refreshClientPicker(); }catch(e){ console.warn("DB error", e); }
+  $("addClient").addEventListener("click", addClient);
+  $("saveClient").addEventListener("click", saveClient);
+  $("cancelClient").addEventListener("click", ()=>{ editingClientId=null; showClientForm(false); });
+  const okdb = await ensureDB();
+  if(!okdb){ $("jobMsg").textContent="⚠ Storage is blocked on this device — saving won't work until that's fixed."; }
+  try{ await refreshJobsList(); await refreshClientPicker(); await refreshClients(); }catch(e){ console.warn("DB error", e); }
   recalc();
   if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 })();
